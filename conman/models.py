@@ -1,12 +1,26 @@
 from datetime import datetime
 
-from django.db import models
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.sites.models import Site
+from django.db import models
+from django.http import Http404
 from django.utils.translation import ugettext_lazy as _
-
 import mptt
+
+
+class PageManager(models.Manager):
+    def get_page_by_uri_or_404(self, uri):
+        uri_frags = uri.strip('/').split('/')
+        slug = uri_frags[-1]
+        pages = Page.objects.filter(slug=slug)
+        for page in pages:
+            frags = [p.slug for p in page.get_ancestors()]
+            frags.append(page.slug)
+            if frags == uri_frags:
+                return page
+        raise Http404
+
 
 class Page(models.Model):
     DRAFT = 0
@@ -32,13 +46,15 @@ class Page(models.Model):
     last_modification_date = models.DateTimeField(_('last modification date'), 
         null=True, blank=True)
 
+    objects = PageManager()
+
     @property
-    def url(self):
-        url = '/'
+    def uri(self):
+        uri = '/'
         for ancestor in self.get_ancestors():
-            url += ancestor.slug + '/'
-        url += self.slug + '/'
-        return url 
+            uri += ancestor.slug + '/'
+        uri += self.slug + '/'
+        return uri 
 
     def save(self):
         if self.id:
@@ -50,6 +66,9 @@ class Page(models.Model):
         ordering = ('tree_id','level',)
 
     def __unicode__(self):
-        return u'%s' % self.title
+        level_marker = ''
+        for i in range(1, self.level + 1):
+            level_marker += '-'
+        return u'%s' % level_marker + self.title
 
 mptt.register(Page)
