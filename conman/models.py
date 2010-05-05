@@ -10,7 +10,17 @@ import mptt
 
 
 class PageManager(models.Manager):
+    """
+    Custom  manager for the ``Page`` model.
+    
+    """
     def get_page_by_uri_or_404(self, uri):
+        """
+        Retrieve a page based on a full URI (eg. /foo/bar/baz/ in
+        http://example.com/foo/bar/baz/). The fragments of the URI must match 
+        an existing hierarchy of pages where each is represented by its slug.
+
+        """
         uri_frags = uri.strip('/').split('/')
         slug = uri_frags[-1]
         pages = Page.objects.filter(slug=slug)
@@ -23,6 +33,13 @@ class PageManager(models.Manager):
 
 
 class Page(models.Model):
+    """
+    A page is the primary building block for site content. Pages are arranged
+    in a hierarchy of unrestrained depth. This model is registered with
+    ``mptt`` to enable efficient retrieval of a tree or sub-tree from any given 
+    node in the page hierarchy.
+
+    """
     DRAFT = 0
     PUBLISHED = 1
     HIDDEN = 2
